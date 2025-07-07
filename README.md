@@ -11,10 +11,9 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: email-button-plugin
 */
 
-// Prevent direct access
 if (!defined('ABSPATH')) exit;
 
-// Register admin menu
+// Admin settings
 function eb_register_settings_menu() {
     add_options_page(
         'Email Button Settings',
@@ -26,59 +25,50 @@ function eb_register_settings_menu() {
 }
 add_action('admin_menu', 'eb_register_settings_menu');
 
-// Settings page
 function eb_settings_page() {
     ?>
     <div class="wrap">
         <h1>Email Button Settings</h1>
         <form method="post" action="options.php">
-            <?php
-            settings_fields('eb_settings_group');
-            do_settings_sections('eb_settings_group');
-            ?>
+            <?php settings_fields('eb_settings_group'); ?>
             <table class="form-table">
-                <tr valign="top">
-                    <th scope="row">Email Address</th>
+                <tr>
+                    <th>Email Address</th>
                     <td>
-                        <input 
-                            type="email" 
-                            name="eb_email_address" 
-                            value="<?php echo esc_attr(get_option('eb_email_address')); ?>" 
-                            placeholder="your@email.com" 
-                            required
-                        />
-                        <p class="description">This email will be used in the "To" field</p>
+                        <input type="email" name="eb_email_address" 
+                               value="<?php echo esc_attr(get_option('eb_email_address')); ?>" 
+                               required placeholder="contact@example.com">
                     </td>
                 </tr>
-                <tr valign="top">
-                    <th scope="row">Default Subject</th>
+                <tr>
+                    <th>Default Subject</th>
                     <td>
-                        <input 
-                            type="text" 
-                            name="eb_email_subject" 
-                            value="<?php echo esc_attr(get_option('eb_email_subject')); ?>" 
-                            placeholder="Website Inquiry"
-                        />
+                        <input type="text" name="eb_email_subject" 
+                               value="<?php echo esc_attr(get_option('eb_email_subject')); ?>"
+                               placeholder="Hello!">
                     </td>
                 </tr>
-                <tr valign="top">
-                    <th scope="row">Button Position</th>
+                <tr>
+                    <th>Button Position</th>
                     <td>
                         <select name="eb_button_position">
-                            <option value="right" <?php selected(get_option('eb_button_position'), 'right'); ?>>Right side</option>
-                            <option value="left" <?php selected(get_option('eb_button_position'), 'left'); ?>>Left side</option>
+                            <option value="right" <?php selected(get_option('eb_button_position'), 'right'); ?>>Right</option>
+                            <option value="left" <?php selected(get_option('eb_button_position'), 'left'); ?>>Left</option>
                         </select>
                     </td>
                 </tr>
-                <tr valign="top">
-                    <th scope="row">Vertical Position</th>
+                <tr>
+                    <th>Vertical Position</th>
                     <td>
-                        <input 
-                            type="number" 
-                            name="eb_vertical_offset" 
-                            value="<?php echo esc_attr(get_option('eb_vertical_offset', '25')); ?>" 
-                            placeholder="25" 
-                        /> px from bottom
+                        <input type="number" name="eb_vertical_offset" 
+                               value="<?php echo esc_attr(get_option('eb_vertical_offset', '25')); ?>"> px from bottom
+                    </td>
+                </tr>
+                <tr>
+                    <th>Button Color</th>
+                    <td>
+                        <input type="color" name="eb_button_color" 
+                               value="<?php echo esc_attr(get_option('eb_button_color', '#4285F4')); ?>">
                     </td>
                 </tr>
             </table>
@@ -88,13 +78,44 @@ function eb_settings_page() {
     <?php
 }
 
-// Register settings
 function eb_register_settings() {
-    register_setting(
-        'eb_settings_group',
-        'eb_email_address',
-        array(
-            'sanitize_callback' => 'sanitize_email'
+    register_setting('eb_settings_group', 'eb_email_address', ['sanitize_callback' => 'sanitize_email']);
+    register_setting('eb_settings_group', 'eb_email_subject');
+    register_setting('eb_settings_group', 'eb_button_position', ['default' => 'right']);
+    register_setting('eb_settings_group', 'eb_vertical_offset', ['default' => '25']);
+    register_setting('eb_settings_group', 'eb_button_color', ['default' => '#4285F4']);
+}
+add_action('admin_init', 'eb_register_settings');
+
+// Frontend button
+function eb_add_email_button() {
+    $email = get_option('eb_email_address');
+    if (!$email) return;
+
+    $subject = get_option('eb_email_subject') ?: 'Website Inquiry';
+    $position = get_option('eb_button_position', 'right');
+    $offset = get_option('eb_vertical_offset', '25');
+    $color = get_option('eb_button_color', '#4285F4');
+    
+    $mailto = 'mailto:' . rawurlencode($email) . '?subject=' . rawurlencode($subject);
+    
+    echo '
+    <a href="' . esc_url($mailto) . '" class="eb-float" title="Email Us">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="#fff">
+            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+        </svg>
+    </a>
+    <style>
+        .eb-float {
+            position: fixed;
+            width: 70px;
+            height: 70px;
+            bottom: ' . (int)$offset . 'px;
+            ' . ($position === 'left' ? 'left: 20px' : 'right: 20px') . ';
+            background: ' . esc_attr($color) . ';
+            border-radius: 50%;
+            display: flex;
+            align-items: center;// Prevent direct access
         )
     );
     
@@ -169,6 +190,25 @@ function eb_add_email_button() {
         .eb-float:hover {
             transform: scale(1.1);
             box-shadow: 3px 3px 15px rgba(0,0,0,0.3);
+        }
+        @media (max-width: 768px) {
+            .eb-float {
+                width: 60px;
+                height: 60px;
+            }
+        }
+    </style>
+    ';
+}
+add_action('wp_footer', 'eb_add_email_button');
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 999;
+            transition: all 0.3s;
+        }
+        .eb-float:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
         @media (max-width: 768px) {
             .eb-float {
