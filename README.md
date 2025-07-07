@@ -1,3 +1,4 @@
+```php
 <?php
 /*
 Plugin Name: Email Button
@@ -179,3 +180,4 @@ function eb_add_email_button() {
     ';
 }
 add_action('wp_footer', 'eb_add_email_button');
+```
